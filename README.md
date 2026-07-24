@@ -1,6 +1,6 @@
-# Taller SCZ - Sistema de Autenticación Manual y Módulo de Servicios
+# Taller SCZ-login
 
-Segundo Examen Parcial - Programación Web II. Sistema de autenticación manual (sin Breeze/Jetstream) para un taller automotriz, con un módulo de Servicios donde cada registro queda asociado automáticamente al usuario autenticado que lo crea.
+Segundo Examen Parcial 
 
 ## Stack
 
@@ -10,15 +10,13 @@ Segundo Examen Parcial - Programación Web II. Sistema de autenticación manual 
 
 ## Instalación
 
-```bash
 composer install
 cp .env.example .env
 php artisan key:generate
-```
+
 
 Configurar en `.env` la conexión a MySQL:
 
-```
 DB_CONNECTION=mysql
 DB_HOST=127.0.0.1
 DB_PORT=3306
@@ -29,16 +27,16 @@ DB_PASSWORD=
 
 Ejecutar migraciones y seeders:
 
-```bash
+
 php artisan migrate
 php artisan db:seed
-```
+
 
 Levantar el servidor:
 
-```bash
+
 php artisan serve
-```
+
 
 ## Usuarios de prueba
 
@@ -113,8 +111,5 @@ POST /logout -> 302 -> http://127.0.0.1:8000/login
 GET /servicios (con la cookie de sesión ya cerrada) -> 302 -> http://127.0.0.1:8000/login
 ```
 
-Con esto se confirma: el Login es la primera pantalla, existen dos usuarios que pueden iniciar sesión de forma independiente, los servicios se registran en MySQL asociados al usuario autenticado (sin recibir `user_id` del formulario), la tabla muestra correctamente quién registró cada servicio, el logout funciona y el módulo Servicios no es accesible sin autenticación.
+Con esto se confirma: el login es la pantalla, existen dos usuarios que pueden iniciar sesión de forma independiente, los servicios se registran en mysql asociados al usuario autenticado sin recibir `user_id` del formulario
 
-## Repositorio
-
-Enlace al repositorio: _pendiente de publicar_.
