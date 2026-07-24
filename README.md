@@ -1,58 +1,120 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Taller SCZ - Sistema de Autenticación Manual y Módulo de Servicios
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Segundo Examen Parcial - Programación Web II. Sistema de autenticación manual (sin Breeze/Jetstream) para un taller automotriz, con un módulo de Servicios donde cada registro queda asociado automáticamente al usuario autenticado que lo crea.
 
-## About Laravel
+## Stack
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+- Laravel 13 / PHP 8.3
+- MySQL
+- Bootstrap 5 (CDN)
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
-
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
-
-## Learning Laravel
-
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
-
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
-
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
-
-## Agentic Development
-
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
+## Instalación
 
 ```bash
-composer require laravel/boost --dev
-
-php artisan boost:install
+composer install
+cp .env.example .env
+php artisan key:generate
 ```
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
+Configurar en `.env` la conexión a MySQL:
 
-## Contributing
+```
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=taller_examen
+DB_USERNAME=root
+DB_PASSWORD=
+```
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+Ejecutar migraciones y seeders:
 
-## Code of Conduct
+```bash
+php artisan migrate
+php artisan db:seed
+```
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+Levantar el servidor:
 
-## Security Vulnerabilities
+```bash
+php artisan serve
+```
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+## Usuarios de prueba
 
-## License
+Creados por `database/seeders/DatabaseSeeder.php` con contraseña hasheada mediante `Hash::make()`:
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+| Nombre       | Email             | Contraseña   |
+|--------------|-------------------|--------------|
+| Juan Perez   | juan@taller.com   | password123  |
+| Maria Lopez  | maria@taller.com  | password123  |
+
+## Funcionalidad implementada
+
+- **Autenticación manual**: `AuthController` usa `Auth::attempt()`, regenera la sesión al iniciar sesión (`$request->session()->regenerate()`) e invalida/regenera el token CSRF al cerrar sesión.
+- **Pantalla inicial**: `/` redirige a `/login` si no hay sesión, o a `/servicios` si el usuario ya está autenticado. `welcome.blade.php` no se utiliza.
+- **Middleware**: rutas `login` bajo el grupo `guest`; rutas `servicios` y `vehiculos` (y `logout`) bajo el grupo `auth`.
+- **Módulo Servicios**: modelo `Servicio` (`belongsTo User`), migración con los campos requeridos, `ServicioController@index/create/store`. El `user_id` se asigna siempre desde `auth()->id()` en el servidor; el formulario no lo solicita ni lo acepta.
+
+## Pruebas de funcionamiento
+
+Se probó el flujo completo levantando el servidor (`php artisan serve`) y ejecutando peticiones reales con `curl` (manteniendo cookies de sesión), simulando la interacción de un navegador.
+
+**1. Acceso sin autenticación a `/` y a `/servicios` → redirige a Login**
+
+```
+GET /            -> 302 -> http://127.0.0.1:8000/login
+GET /servicios   -> 302 -> http://127.0.0.1:8000/login
+```
+
+**2. Login con credenciales incorrectas → muestra mensaje de error**
+
+```
+POST /login (juan@taller.com / incorrecta) -> 302 -> /login
+GET /login (siguiente request) contiene:
+  <div class="invalid-feedback">Las credenciales proporcionadas no coinciden con nuestros registros.</div>
+```
+
+**3. Login con credenciales correctas (usuario 1) → redirige a Servicios**
+
+```
+POST /login (juan@taller.com / password123) -> 302 -> http://127.0.0.1:8000/servicios
+```
+
+**4. Login con credenciales correctas (usuario 2) → funciona igualmente**
+
+```
+POST /login (maria@taller.com / password123) -> 302 -> http://127.0.0.1:8000/servicios
+```
+
+**5. Creación de un servicio autenticado como Juan Perez**
+
+```
+GET  /servicios/create -> 200
+POST /servicios (nombre=Cambio de aceite, precio=150.50, duracion_estimada=45, estado=Pendiente)
+     -> 302 -> http://127.0.0.1:8000/servicios
+```
+
+**6. La tabla de Servicios muestra el registro con el propietario correcto**
+
+```
+GET /servicios (autenticado) -> 200
+Contiene:
+  <td>Cambio de aceite</td>
+  <td>Bs 150.50</td>
+  ...
+  Juan Perez   <!-- $servicio->user->name -->
+```
+
+**7. Logout destruye la sesión y regresa al Login**
+
+```
+POST /logout -> 302 -> http://127.0.0.1:8000/login
+GET /servicios (con la cookie de sesión ya cerrada) -> 302 -> http://127.0.0.1:8000/login
+```
+
+Con esto se confirma: el Login es la primera pantalla, existen dos usuarios que pueden iniciar sesión de forma independiente, los servicios se registran en MySQL asociados al usuario autenticado (sin recibir `user_id` del formulario), la tabla muestra correctamente quién registró cada servicio, el logout funciona y el módulo Servicios no es accesible sin autenticación.
+
+## Repositorio
+
+Enlace al repositorio: _pendiente de publicar_.
